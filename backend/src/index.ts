@@ -1,48 +1,36 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { auth } from "./auth";
 
-const app = new Hono<{
-  Variables: {
-    user: typeof auth.$Infer.Session.user | null;
-    session: typeof auth.$Infer.Session.session | null;
-  };
-}>();
+// Import minimal routes
+import devices from "./routes/devices";
+import readings from "./routes/readings";
+import commandsRouter from "./routes/commands";
+
+const app = new Hono();
 
 app.use(
-  "/api/auth/*", // or replace with "*" to enable cors for all routes
+  "*",
   cors({
-    origin: "http://localhost:3001", // replace with your origin
-    allowHeaders: ["Content-Type", "Authorization"],
-    allowMethods: ["POST", "GET", "OPTIONS"],
+    origin: "http://localhost:3000", // Allow localhost for development
+    allowHeaders: ["Content-Type", "Authorization", "X-API-Key"],
+    allowMethods: ["POST", "GET", "PATCH", "DELETE", "OPTIONS"],
     exposeHeaders: ["Content-Length"],
     maxAge: 600,
     credentials: true,
   })
 );
 
-app.use("*", async (c, next) => {
-  const session = await auth.api.getSession({ headers: c.req.raw.headers });
-
-  if (!session) {
-    c.set("user", null);
-    c.set("session", null);
-    await next();
-    return;
-  }
-
-  c.set("user", session.user);
-  c.set("session", session.session);
-  await next();
-});
-
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
-  return auth.handler(c.req.raw);
-});
+// API routes
+app.route("/devices", devices);
+app.route("/readings", readings);
+app.route("/commands", commandsRouter);
 
 app.get("/", (c) => {
-  return c.text("Hello Hono!");
+  return c.json({
+    service: "Real-Time Adaptive Traffic System API",
+    version: "1.0.0",
+    status: "running",
+  });
 });
 
-export type AppType = typeof app;
 export default app;
