@@ -38,6 +38,7 @@ export const ReadingResponseSchema = z.object({
   deviceId: z.string(),
   pin: z.number(),
   distanceCm: z.number(),
+  batchId: z.string().nullable(),
   timestamp: z.string(),
 });
 

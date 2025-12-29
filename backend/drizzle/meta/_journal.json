@@ -5,9 +5,10 @@
     {
       "idx": 0,
       "version": "6",
-      "when": 1766958441735,
-      "tag": "0000_bitter_zaladane",
-      "breakpoints": true
+      "when": 1766992366454,
+      "tag": "0000_melodic_meltdown",
+      "breakpoints": true,
+      "applied": true
     }
   ]
 }

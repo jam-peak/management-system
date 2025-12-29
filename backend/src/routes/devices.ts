@@ -183,4 +183,62 @@ devices.get("/:id", async (c) => {
   }
 });
 
+// Delete device by ID
+devices.delete("/:id", async (c) => {
+  try {
+    const deviceId = c.req.param("id");
+    const { success, data, error } = DeviceIdParamSchema.safeParse({
+      id: deviceId,
+    });
+    if (!success) {
+      return c.json(
+        {
+          success: false,
+          error: "Invalid device ID",
+          details: error?.issues,
+        },
+        400
+      );
+    }
+
+    // Check if device exists
+    const existingDevice = await db
+      .select()
+      .from(espDevices)
+      .where(eq(espDevices.deviceId, deviceId))
+      .limit(1);
+
+    if (!existingDevice || existingDevice.length === 0) {
+      return c.json(
+        {
+          success: false,
+          error: "Device not found",
+        },
+        404
+      );
+    }
+
+    // Delete the device
+    await db.delete(espDevices).where(eq(espDevices.deviceId, deviceId));
+
+    return c.json({
+      success: true,
+      data: {
+        message: `Device '${deviceId}' deleted successfully`,
+        deviceId: deviceId,
+      },
+    });
+  } catch (error: any) {
+    return c.json(
+      {
+        success: false,
+        error: "Failed to delete device",
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      500
+    );
+  }
+});
+
 export default devices;

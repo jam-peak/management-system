@@ -3,11 +3,14 @@ import { z } from "zod";
 import { db } from "../db";
 import { sensorReadings, espDevices } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
+import { customAlphabet } from "nanoid";
 import {
   CreateReadingsSchema,
   ReadingResponseSchema,
   DeviceIdParamSchema,
 } from "../zod";
+
+const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 
 export interface ReadingData {
   pin: string | number;
@@ -18,6 +21,7 @@ export interface SensorReadingInsert {
   deviceId: string;
   pin: number;
   distanceCm: number;
+  batchId: string;
   timestamp: Date;
 }
 
@@ -78,12 +82,16 @@ readings.post("/", async (ctx: any) => {
       );
     }
 
+    // Generate unique batch ID for this request
+    const batchId = `batch_${nanoid()}`;
+
     // Insert all readings
     const inserts: SensorReadingInsert[] = readingsData.map(
       (r: ReadingData) => ({
         deviceId,
         pin: typeof r.pin === "string" ? parseInt(r.pin) : r.pin || 0,
         distanceCm: r.distanceCm,
+        batchId,
         timestamp: timestampDate, // Use Date object
       })
     );
@@ -98,7 +106,7 @@ readings.post("/", async (ctx: any) => {
 
     return ctx.json({
       success: true,
-      data: { stored: inserts.length },
+      data: { stored: inserts.length, batchId },
     });
   } catch (error: any) {
     return ctx.json(
@@ -152,6 +160,63 @@ readings.get("/:id", async (ctx: any) => {
       {
         success: false,
         error: error.message || "Failed to retrieve readings",
+        details:
+          process.env.NODE_ENV === "development" ? error.stack : undefined,
+      },
+      500
+    );
+  }
+});
+
+// Delete readings by batch ID
+readings.delete("/batch/:batchId", async (ctx: any) => {
+  try {
+    const batchId = ctx.req.param("batchId");
+
+    if (!batchId || !batchId.startsWith("batch_")) {
+      return ctx.json(
+        {
+          success: false,
+          error: "Invalid batch ID format",
+        },
+        400
+      );
+    }
+
+    // Check if any readings exist with this batch ID
+    const existingReadings = await db
+      .select()
+      .from(sensorReadings)
+      .where(eq(sensorReadings.batchId, batchId))
+      .limit(1);
+
+    if (!existingReadings || existingReadings.length === 0) {
+      return ctx.json(
+        {
+          success: false,
+          error: "No readings found for this batch ID",
+        },
+        404
+      );
+    }
+
+    // Delete all readings with this batch ID
+    const deleteResult = await db
+      .delete(sensorReadings)
+      .where(eq(sensorReadings.batchId, batchId));
+
+    return ctx.json({
+      success: true,
+      data: {
+        message: `Readings batch '${batchId}' deleted successfully`,
+        batchId: batchId,
+      },
+    });
+  } catch (error: any) {
+    return ctx.json(
+      {
+        success: false,
+        error: "Failed to delete readings batch",
         details:
           process.env.NODE_ENV === "development" ? error.stack : undefined,
       },

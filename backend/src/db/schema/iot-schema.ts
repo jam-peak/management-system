@@ -37,6 +37,7 @@ export const sensorReadings = sqliteTable("sensor_readings", {
     .references(() => espDevices.deviceId, { onDelete: "cascade" }),
   pin: integer("pin").notNull(), // GPIO pin number
   distanceCm: integer("distance_cm").notNull(),
+  batchId: text("batch_id"), // Groups readings from the same request
   timestamp: integer("timestamp", { mode: "timestamp" })
     .notNull()
     .default(sql`(unixepoch())`),
