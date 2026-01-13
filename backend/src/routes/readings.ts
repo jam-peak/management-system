@@ -44,7 +44,7 @@ readings.post("/", async (ctx: any) => {
       );
     }
 
-    const { deviceId, timestamp, road1JamPercent, road2JamPercent } = data;
+    const { deviceId, road1JamPercent, road2JamPercent } = data;
 
     // Validate device exists
     const deviceCheck = await db
@@ -63,24 +63,8 @@ readings.post("/", async (ctx: any) => {
       );
     }
 
-    // Convert timestamp to Date object
-    let timestampDate: Date;
-    if (timestamp) {
-      timestampDate = new Date(timestamp);
-    } else {
-      timestampDate = new Date();
-    }
-
-    // Validate timestamp is valid
-    if (isNaN(timestampDate.getTime())) {
-      return ctx.json(
-        {
-          success: false,
-          error: "Invalid timestamp format",
-        },
-        400
-      );
-    }
+    // Always use server timestamp for accuracy and consistency
+    const timestampDate = new Date();
 
     // Generate unique batch ID for this request
     const batchId = `batch_${nanoid()}`;
