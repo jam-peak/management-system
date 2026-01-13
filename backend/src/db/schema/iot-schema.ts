@@ -45,14 +45,15 @@ export const commands = sqliteTable("commands", {
   executedAt: integer("executed_at", { mode: "timestamp" }),
 });
 
-// Half-hour averages for traffic prediction
+// Half-hour averages for traffic prediction (separate by road)
 export const halfHourAverages = sqliteTable("half_hour_averages", {
   id: integer("id").primaryKey({ autoIncrement: true }),
   espId: text("esp_id")
     .notNull()
     .references(() => espDevices.deviceId, { onDelete: "cascade" }),
   timestamp: integer("timestamp", { mode: "timestamp" }).notNull(), // Date + half-hour index
-  averageValue: integer("average_value").notNull(), // Average distance in cm for this half-hour
+  road1AveragePercent: integer("road1_average_percent").notNull(), // Average jam % for road 1 
+  road2AveragePercent: integer("road2_average_percent").notNull(), // Average jam % for road 2
   halfHourIndex: integer("half_hour_index").notNull(), // 0-47 (48 half-hours per day)
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()

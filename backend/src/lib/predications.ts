@@ -10,7 +10,8 @@ interface AIResponse {
 
 interface HalfHourData {
   halfHourIndex: number;
-  averageValue: number;
+  road1AveragePercent: number;
+  road2AveragePercent: number;
   timestamp: Date;
 }
 
@@ -21,7 +22,7 @@ interface HistoricalDataset {
 }
 
 /**
- * Calculate half-hour averages from device jam percentage readings
+ * Calculate half-hour averages from device jam percentage readings (separate by road)
  */
 export async function calculateHalfHourAverages(deviceId: string): Promise<void> {
   try {
@@ -44,8 +45,8 @@ export async function calculateHalfHourAverages(deviceId: string): Promise<void>
         )
       );
 
-    // Group readings by half-hour intervals (48 per day)
-    const halfHourGroups: { [key: number]: number[] } = {};
+    // Group readings by half-hour intervals (48 per day), separate by road
+    const halfHourGroups: { [key: number]: { road1: number[], road2: number[] } } = {};
     
     readings.forEach(reading => {
       const hour = reading.timestamp.getHours();
@@ -53,17 +54,18 @@ export async function calculateHalfHourAverages(deviceId: string): Promise<void>
       const halfHourIndex = hour * 2 + Math.floor(minute / 30); // 0-47
       
       if (!halfHourGroups[halfHourIndex]) {
-        halfHourGroups[halfHourIndex] = [];
+        halfHourGroups[halfHourIndex] = { road1: [], road2: [] };
       }
-      // Average the jam percentages from both roads
-      const averageJamPercent = (reading.road1JamPercent + reading.road2JamPercent) / 2;
-      halfHourGroups[halfHourIndex].push(averageJamPercent);
+      halfHourGroups[halfHourIndex].road1.push(reading.road1JamPercent);
+      halfHourGroups[halfHourIndex].road2.push(reading.road2JamPercent);
     });
 
     // Calculate averages and insert into database
-    for (const [halfHourIndexStr, jamPercentages] of Object.entries(halfHourGroups)) {
+    for (const [halfHourIndexStr, roadData] of Object.entries(halfHourGroups)) {
       const halfHourIndex = parseInt(halfHourIndexStr);
-      const averageValue = Math.round(jamPercentages.reduce((sum, j) => sum + j, 0) / jamPercentages.length);
+      
+      const road1Average = Math.round(roadData.road1.reduce((sum, j) => sum + j, 0) / roadData.road1.length);
+      const road2Average = Math.round(roadData.road2.reduce((sum, j) => sum + j, 0) / roadData.road2.length);
       
       // Create timestamp for this half-hour period
       const timestamp = new Date(yesterday);
@@ -72,7 +74,8 @@ export async function calculateHalfHourAverages(deviceId: string): Promise<void>
       await db.insert(halfHourAverages).values({
         espId: deviceId,
         timestamp,
-        averageValue,
+        road1AveragePercent: road1Average,
+        road2AveragePercent: road2Average,
         halfHourIndex,
       });
     }
@@ -249,28 +252,35 @@ You are a traffic prediction AI system. Based on the historical traffic data pro
 
 Device Information:
 - Location: ${deviceInfo.location}
-- Name: ${deviceInfo.name}
-- Data Format: averageValue = jam congestion percentage (0-100%)
+- Road 1: ${deviceInfo.road1Name}
+- Road 2: ${deviceInfo.road2Name}
+- Data Format: road1AveragePercent & road2AveragePercent = jam congestion percentage (0-100%)
 
 Historical Data Analysis:
 1. Same day previous years (${historicalData.sameDayLastYears.length} data points):
 ${JSON.stringify(historicalData.sameDayLastYears.map(d => ({
   halfHour: d.halfHourIndex,
-  jamPercent: d.averageValue,
+  road1JamPercent: d.road1AveragePercent,
+  road2JamPercent: d.road2AveragePercent,
+  averageJamPercent: Math.round((d.road1AveragePercent + d.road2AveragePercent) / 2),
   date: d.timestamp
 })), null, 2)}
 
 2. Last 7 days patterns (${historicalData.lastSevenDays.length} data points):
 ${JSON.stringify(historicalData.lastSevenDays.map(d => ({
   halfHour: d.halfHourIndex,
-  jamPercent: d.averageValue,
+  road1JamPercent: d.road1AveragePercent,
+  road2JamPercent: d.road2AveragePercent,
+  averageJamPercent: Math.round((d.road1AveragePercent + d.road2AveragePercent) / 2),
   date: d.timestamp
 })), null, 2)}
 
 3. Weekday and seasonal patterns (${historicalData.weekdayPatterns.length} data points):
 ${JSON.stringify(historicalData.weekdayPatterns.map(d => ({
   halfHour: d.halfHourIndex,
-  jamPercent: d.averageValue,
+  road1JamPercent: d.road1AveragePercent,
+  road2JamPercent: d.road2AveragePercent,
+  averageJamPercent: Math.round((d.road1AveragePercent + d.road2AveragePercent) / 2),
   date: d.timestamp
 })), null, 2)}
 
@@ -278,7 +288,8 @@ Instructions:
 - Return ONLY a JSON array of 48 numbers (0-100) representing traffic jam probability percentages
 - Index 0 = 00:00-00:30, Index 1 = 00:30-01:00, ..., Index 47 = 23:30-24:00
 - Use historical jam percentages to predict future jam percentages
-- Higher historical jamPercent values indicate higher likelihood of future congestion
+- Consider both road1JamPercent and road2JamPercent, but predict overall intersection congestion
+- Higher historical jam percentages indicate higher likelihood of future congestion
 - Consider patterns from historical data, typical rush hours, and location context
 - Format: [10, 15, 8, 12, ..., 25] (exactly 48 numbers)
 

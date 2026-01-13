@@ -4,7 +4,8 @@ export interface HalfHourAverage {
   id: number;
   espId: string;
   timestamp: Date;
-  averageValue: number;
+  road1AveragePercent: number;
+  road2AveragePercent: number;
   halfHourIndex: number;
   createdAt: Date;
 }
