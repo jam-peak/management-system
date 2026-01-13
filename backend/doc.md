@@ -295,14 +295,14 @@ Send a command to an ESP32 device.
 
 Get pending commands for an ESP32 device (polling endpoint).
 
-**POST** `/commands/poll`
+**GET** `/commands/poll?deviceId={deviceId}`
 
-**Request Body:**
+**Query Parameters:**
+- `deviceId`: The ESP32 device identifier
 
-```json
-{
-  "deviceId": "string"
-}
+**Example Request:**
+```
+GET /commands/poll?deviceId=ESP32_001
 ```
 
 **Response:**
@@ -325,9 +325,10 @@ Get pending commands for an ESP32 device (polling endpoint).
 
 **Notes:**
 
-- ESP32 devices should poll this endpoint regularly
-- Returns up to 10 pending commands
+- ESP32 devices should poll this endpoint regularly to check for new commands
+- Returns up to 10 pending commands for the specified device
 - Commands remain in "pending" status until updated by device
+- Returns empty array if no pending commands
 
 ### Update Command Status
 

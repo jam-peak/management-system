@@ -87,16 +87,27 @@ commandsRoute.post("/", async (c) => {
 });
 
 // Poll for pending commands for a device
-commandsRoute.post("/poll", async (c) => {
+commandsRoute.get("/poll", async (c) => {
   try {
-    const body = await c.req.json();
-    const { success, data, error } = DeviceIdQuerySchema.safeParse(body);
+    const deviceId = c.req.query("deviceId");
+    
+    if (!deviceId) {
+      return c.json(
+        {
+          success: false,
+          error: "Missing deviceId query parameter",
+        },
+        400
+      );
+    }
+
+    const { success, data, error } = DeviceIdQuerySchema.safeParse({ deviceId });
 
     if (!success) {
       return c.json(
         {
           success: false,
-          error: "Invalid request data",
+          error: "Invalid device ID",
           details: error?.issues,
         },
         400
@@ -135,7 +146,7 @@ commandsRoute.post("/poll", async (c) => {
       },
       500
     );
-  }
+}
 });
 
 // Update command status (ESP endpoint)
