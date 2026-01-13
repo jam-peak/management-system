@@ -13,7 +13,9 @@
     "cf-typegen": "wrangler types --env-interface CloudflareBindings"
   },
   "dependencies": {
+    "@google/genai": "^1.35.0",
     "@libsql/client": "^0.15.15",
+    "@openrouter/sdk": "^0.3.11",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",
     "nanoid": "^5.1.6",

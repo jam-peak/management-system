@@ -9,6 +9,20 @@
       "tag": "0000_melodic_meltdown",
       "breakpoints": true,
       "applied": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1768303633433,
+      "tag": "0001_real_randall_flagg",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1768315897658,
+      "tag": "0002_steep_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

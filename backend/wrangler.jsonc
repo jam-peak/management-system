@@ -11,6 +11,8 @@
   "d1_databases": [],
   "services": [],
   "triggers": {
-    "crons": []
+    "crons": [
+      "0 2 * * *"
+    ]
   }
 }

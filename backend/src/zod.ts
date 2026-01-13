@@ -6,6 +6,8 @@ export const DeviceSchema = z.object({
   deviceId: z.string(),
   name: z.string(),
   location: z.string(),
+  road1Name: z.string(),
+  road2Name: z.string(),
   apiKey: z.string(),
   lastSeenAt: z.string().nullable(),
   createdAt: z.string(),
@@ -15,29 +17,27 @@ export const CreateDeviceSchema = z.object({
   deviceId: z.string().min(3),
   name: z.string().min(3),
   location: z.string().min(3),
+  road1Name: z.string().min(1),
+  road2Name: z.string().min(1),
 });
 
 export const DeviceIdParamSchema = z.object({
   id: z.string(),
 });
 
-// Sensor Reading Schemas
-export const SensorReadingSchema = z.object({
-  pin: z.number().int().min(0),
-  distanceCm: z.number().int().min(0),
-});
-
+// Device Reading Schemas
 export const CreateReadingsSchema = z.object({
   deviceId: z.string(),
   timestamp: z.union([z.number(), z.string().datetime()]).optional(),
-  readings: z.array(SensorReadingSchema).min(1),
+  road1JamPercent: z.number().int().min(0).max(100),
+  road2JamPercent: z.number().int().min(0).max(100),
 });
 
 export const ReadingResponseSchema = z.object({
   id: z.number(),
   deviceId: z.string(),
-  pin: z.number(),
-  distanceCm: z.number(),
+  road1JamPercent: z.number(),
+  road2JamPercent: z.number(),
   batchId: z.string().nullable(),
   timestamp: z.string(),
 });

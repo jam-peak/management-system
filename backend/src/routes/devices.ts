@@ -62,7 +62,7 @@ devices.post("/", async (c) => {
         400
       );
     }
-    const { deviceId, name, location } = data;
+    const { deviceId, name, location, road1Name, road2Name } = data;
 
     // Check if deviceId already exists
     const existingDevice = await db
@@ -90,6 +90,8 @@ devices.post("/", async (c) => {
         deviceId,
         name,
         location,
+        road1Name,
+        road2Name,
         apiKey: hashedApiKey,
         lastSeenAt: new Date(),
       })

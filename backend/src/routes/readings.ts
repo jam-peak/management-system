@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { db } from "../db";
-import { sensorReadings, espDevices } from "../db/schema";
+import { deviceReadings, espDevices } from "../db/schema";
 import { eq, desc } from "drizzle-orm";
 import { customAlphabet } from "nanoid";
 import {
@@ -13,14 +13,14 @@ import {
 const nanoid = customAlphabet("abcdefghijklmnopqrstuvwxyz0123456789", 16);
 
 export interface ReadingData {
-  pin: string | number;
-  distanceCm: number;
+  road1JamPercent: number;
+  road2JamPercent: number;
 }
 
-export interface SensorReadingInsert {
+export interface DeviceReadingInsert {
   deviceId: string;
-  pin: number;
-  distanceCm: number;
+  road1JamPercent: number;
+  road2JamPercent: number;
   batchId: string;
   timestamp: Date;
 }
@@ -44,7 +44,7 @@ readings.post("/", async (ctx: any) => {
       );
     }
 
-    const { deviceId, timestamp, readings: readingsData } = data;
+    const { deviceId, timestamp, road1JamPercent, road2JamPercent } = data;
 
     // Validate device exists
     const deviceCheck = await db
@@ -85,18 +85,16 @@ readings.post("/", async (ctx: any) => {
     // Generate unique batch ID for this request
     const batchId = `batch_${nanoid()}`;
 
-    // Insert all readings
-    const inserts: SensorReadingInsert[] = readingsData.map(
-      (r: ReadingData) => ({
-        deviceId,
-        pin: typeof r.pin === "string" ? parseInt(r.pin) : r.pin || 0,
-        distanceCm: r.distanceCm,
-        batchId,
-        timestamp: timestampDate, // Use Date object
-      })
-    );
+    // Insert device reading
+    const insert: DeviceReadingInsert = {
+      deviceId,
+      road1JamPercent,
+      road2JamPercent,
+      batchId,
+      timestamp: timestampDate,
+    };
 
-    await db.insert(sensorReadings).values(inserts);
+    await db.insert(deviceReadings).values(insert);
 
     // Update last seen
     await db
@@ -106,7 +104,7 @@ readings.post("/", async (ctx: any) => {
 
     return ctx.json({
       success: true,
-      data: { stored: inserts.length, batchId },
+      data: { stored: 1, batchId },
     });
   } catch (error: any) {
     return ctx.json(
@@ -141,9 +139,9 @@ readings.get("/:id", async (ctx: any) => {
 
     const latestReadings = await db
       .select()
-      .from(sensorReadings)
-      .where(eq(sensorReadings.deviceId, data.id))
-      .orderBy(desc(sensorReadings.timestamp))
+      .from(deviceReadings)
+      .where(eq(deviceReadings.deviceId, data.id))
+      .orderBy(desc(deviceReadings.timestamp))
       .limit(100);
 
     const transformedReadings = latestReadings.map((reading) => ({
@@ -186,8 +184,8 @@ readings.delete("/batch/:batchId", async (ctx: any) => {
     // Check if any readings exist with this batch ID
     const existingReadings = await db
       .select()
-      .from(sensorReadings)
-      .where(eq(sensorReadings.batchId, batchId))
+      .from(deviceReadings)
+      .where(eq(deviceReadings.batchId, batchId))
       .limit(1);
 
     if (!existingReadings || existingReadings.length === 0) {
@@ -202,8 +200,8 @@ readings.delete("/batch/:batchId", async (ctx: any) => {
 
     // Delete all readings with this batch ID
     const deleteResult = await db
-      .delete(sensorReadings)
-      .where(eq(sensorReadings.batchId, batchId));
+      .delete(deviceReadings)
+      .where(eq(deviceReadings.batchId, batchId));
 
     return ctx.json({
       success: true,
